@@ -4,6 +4,8 @@ const express = require("express");
 const cors = require("cors");
 const app = express();
 require("dotenv").config();
+const jwt = require("jsonwebtoken");
+const bcrypt = require("bcryptjs");
 
 app.use(cors());
 app.use(express.json());
@@ -19,6 +21,31 @@ const client = new MongoClient(uri, {
 });
 async function run() {
   try {
+    // collections
+    const usersCollection = client.db("emsJobTaskDB").collection("users");
+
+    // auth
+
+    // Register user
+    app.post("/auth/register", async (req, res) => {
+      const user = req.body;
+      const isExist = await usersCollection.findOne({ email: user.email });
+      if (isExist) {
+        res.send({ result: { message: "User already exist", insertedId: null } });
+        return;
+      }
+
+      const hashedPassword = await bcrypt.hash(user.password, 10);
+      user.password = hashedPassword;
+
+      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
+        expiresIn: "10d",
+      });
+
+      const result = await usersCollection.insertOne(user);
+      res.send({ result, token });
+    });
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
