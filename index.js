@@ -7,8 +7,29 @@ require("dotenv").config();
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 
+// middleware
 app.use(cors());
 app.use(express.json());
+
+const verifyToken = (req, res, next) => {
+  console.log("in verify token", req.headers?.authorization);
+
+  if (!req.headers?.authorization) {
+    return res.status(401).send({ message: "Unauthorized" });
+  }
+
+  const token = req.headers?.authorization?.split(" ")[1];
+
+  console.log(token);
+
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (error, decoded) => {
+    if (error) {
+      return res.status(401).send({ message: "Unauthorized" });
+    }
+    req.decoded = decoded;
+    next();
+  });
+};
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.6fu63x8.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
@@ -25,6 +46,20 @@ async function run() {
     const usersCollection = client.db("emsJobTaskDB").collection("users");
 
     // auth
+
+    // get auth data
+    app.get("/auth", verifyToken, async (req, res) => {
+      const email = req.decoded.email;
+      const query = { email };
+      const result = await usersCollection.findOne(query);
+
+      res.send({
+        _id: result?._id,
+        fullName: result?.fullName,
+        email: result?.email,
+        role: result?.role,
+      });
+    });
 
     // Register user
     app.post("/auth/register", async (req, res) => {
