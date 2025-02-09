@@ -81,6 +81,28 @@ async function run() {
       res.send({ result, token });
     });
 
+    // user login
+    app.post("/auth/login", async (req, res) => {
+      const password = req.body.password;
+      const user = await usersCollection.findOne({ email: req.body.email });
+      if (!user) {
+        res.send({ result: { message: "Email or Password is wrong", isLogin: false } });
+        return;
+      }
+
+      const passwordCompare = await bcrypt.compare(password, user.password);
+      if (!passwordCompare) {
+        res.send({ result: { message: "Email or Password is wrong", isLogin: false } });
+        return;
+      }
+
+      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
+        expiresIn: "10d",
+      });
+
+      res.send({ result: { isLogin: true }, token });
+    });
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
