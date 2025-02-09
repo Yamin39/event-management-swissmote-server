@@ -31,6 +31,13 @@ const verifyToken = (req, res, next) => {
   });
 };
 
+const verifyAdmin = (req, res, next) => {
+  if (req.decoded.role !== "admin") {
+    return res.status(401).send({ message: "Unauthorized" });
+  }
+  next();
+};
+
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.6fu63x8.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
 const client = new MongoClient(uri, {
@@ -44,6 +51,7 @@ async function run() {
   try {
     // collections
     const usersCollection = client.db("emsJobTaskDB").collection("users");
+    const eventsCollection = client.db("emsJobTaskDB").collection("events");
 
     // auth
 
@@ -112,6 +120,14 @@ async function run() {
       });
 
       res.send({ result: { isLogin: true }, token });
+    });
+
+    // events
+
+    app.post("/events", verifyToken, verifyAdmin, async (req, res) => {
+      const event = req.body;
+      const result = await eventsCollection.insertOne(event);
+      res.send({ result });
     });
 
     // Send a ping to confirm a successful connection
