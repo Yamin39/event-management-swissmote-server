@@ -146,6 +146,21 @@ async function run() {
       res.send({ result });
     });
 
+    app.put("/events/:id/attend", verifyToken, async (req, res) => {
+      const id = req.params.id;
+      const email = req.decoded.email;
+
+      //   check if the user is already attended the event
+      const event = await eventsCollection.findOne({ _id: new ObjectId(id) });
+      if (event.attendees.includes(email)) {
+        res.send({ message: "You already attended this event", attended: false });
+        return;
+      }
+
+      const result = await eventsCollection.updateOne({ _id: new ObjectId(id) }, { $push: { attendees: email } });
+      res.send({ result, attended: true, message: "You have successfully attended the event" });
+    });
+
     app.delete("/events/:id", verifyToken, verifyAdmin, async (req, res) => {
       const id = req.params.id;
       const result = await eventsCollection.deleteOne({ _id: new ObjectId(id) });
