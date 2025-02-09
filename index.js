@@ -103,6 +103,17 @@ async function run() {
       res.send({ result: { isLogin: true }, token });
     });
 
+    // guest login
+    app.post("/auth/guest-login", async (req, res) => {
+      const user = await usersCollection.findOne({ email: "guest@gmail.com" });
+
+      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
+        expiresIn: "10d",
+      });
+
+      res.send({ result: { isLogin: true }, token });
+    });
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
